@@ -1,73 +1,83 @@
-# Commonplace Blog Platform
+# Inkwell Blog Platform with Comments
 
-A responsive React blog platform with story discovery, category filtering, search, writing, likes, and threaded-style comments. The included Express API provides JWT authentication and MongoDB persistence endpoints for users, posts, and comments.
+A full-stack editorial blog platform built with React, TypeScript, Express, MongoDB, and JWT authentication. Readers can discover and read stories publicly, while registered writers can publish, edit, and delete their own posts, and join conversations with comments.
 
-## Run locally
+---
 
-```bash
-npm install
-npm run dev
-```
+## 1. Features and Modules
 
-Open the local URL printed by Vite. Use your name and email to enter the demo workspace. Create, edit, complete, search, filter, and delete tasks from the dashboard. Tasks are stored in this browser and separated by email address.
+- **Authentication**: User registration and login powered by secure JWT (JSON Web Tokens) with hashed passwords.
+- **Posts**: Full CRUD capabilities (create, read, edit, delete). Author-level authorization guarantees that only the post's author can edit or delete their story.
+- **Comments**: Authenticated users can comment on any post. Comments display the commenter's name, initials avatar, and time of posting. Authors can delete their own comments.
+- **Public Reading**: The post list and individual post reader are accessible publicly without requiring an account.
+- **Pagination & Filters**: Server-side pagination loads posts in manageable pages with category pills and dynamic search to keep performance fast.
 
-## MongoDB API
+---
 
-Start a local MongoDB server, copy `.env.example` to `.env`, then run:
+## 2. API Endpoints
 
-```bash
-npm run server
-```
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/register` | Register a new user account | Public |
+| `POST` | `/api/auth/login` | Log in and receive JWT token | Public |
+| `GET` | `/api/auth/me` | Fetch currently authenticated user | Private (Bearer Token) |
+| `GET` | `/api/posts` | List posts (latest first) with pagination, categories & search | Public |
+| `GET` | `/api/posts/:id` | Get single post details with populated comments | Public |
+| `POST` | `/api/posts` | Create a new blog post | Private (Bearer Token) |
+| `PUT` | `/api/posts/:id` | Edit own post | Author Only |
+| `DELETE` | `/api/posts/:id` | Delete own post and cascade remove its comments | Author Only |
+| `POST` | `/api/posts/:postId/comments` | Add a comment to a post | Private (Bearer Token) |
+| `DELETE` | `/api/comments/:id` | Delete own comment | Author Only |
 
-The API is available at `http://localhost:5000`.
+---
 
-- `POST /api/auth/register`, `POST /api/auth/login`
-- `GET, POST /api/posts`; `PATCH, DELETE /api/posts/:id`
-- `GET, POST /api/posts/:id/comments`
+## 3. Main React Components (Table 4.11 Architecture)
 
-Protected endpoints expect `Authorization: Bearer <token>`.
+| Component | File Path | Responsibility |
+| :--- | :--- | :--- |
+| **Navbar** | [`src/components/Navbar.tsx`](file:///src/components/Navbar.tsx) | Navigation links to home and new post draft; user profile, login, and logout triggers. |
+| **PostList**, **PostCard** | [`src/components/PostList.tsx`](file:///src/components/PostList.tsx), [`src/components/PostCard.tsx`](file:///src/components/PostCard.tsx) | Displays paginated list of posts with title, excerpt, category, author avatar, date, and response count. |
+| **PostDetail** | [`src/components/PostDetail.tsx`](file:///src/components/PostDetail.tsx) | Full post reader with author metadata, formatted body, edit and delete buttons for the author, and comments. |
+| **CommentList** | [`src/components/CommentList.tsx`](file:///src/components/CommentList.tsx) | Displays comments for a post sorted newest first, with author name, time, and author delete button. |
+| **CommentForm** | [`src/components/CommentForm.tsx`](file:///src/components/CommentForm.tsx) | Input form for submitting responses; visible to logged-in users with a prompt for visitors to sign in. |
+| **PostEditor** | [`src/components/PostEditor.tsx`](file:///src/components/PostEditor.tsx) | Dual-mode editor form for creating new stories or editing existing stories with cover image preview. |
+| **AuthContext**, **ProtectedRoute** | [`src/context/AuthContext.tsx`](file:///src/context/AuthContext.tsx), [`src/components/ProtectedRoute.tsx`](file:///src/components/ProtectedRoute.tsx) | Manages authentication state, token storage, and shields private routes/actions. |
 
-## Verification
+---
 
-```bash
-npm run build
-npm run lint
-```
+## 4. Getting Started
 
-## Note
+### Prerequisites
 
-The homepage uses seeded client data to make the interface immediately explorable. Connect its actions to the included API when moving from demo mode to persisted local data.
+- Node.js (v18+)
+- MongoDB running locally at `mongodb://127.0.0.1:27017` (or configured via `MONGODB_URI`)
 
-# React + TypeScript + Vite
+### Setup and Running
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-Currently, two official plugins are available:
+2. **Start the API Server** (runs on port 5000 and auto-seeds sample posts and demo users on first run):
+   ```bash
+   npm run server
+   ```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+3. **Start the Vite Frontend** (with proxy to port 5000):
+   ```bash
+   npm run dev
+   ```
 
-## React Compiler
+4. **Verify Build & Lint**:
+   ```bash
+   npm run build
+   npm run lint
+   ```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Demo Accounts for Instant Testing
 
-## Expanding the Oxlint configuration
+When testing author permissions and comments, you can use the instant sign-in buttons in the login modal or sign in with:
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
-# blog_platform
+- **Maya Chen**: `maya@example.com` / `password123`
+- **Alex Morgan**: `alex@example.com` / `password123`

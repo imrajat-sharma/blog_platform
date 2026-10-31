@@ -1,25 +1,149 @@
-import { useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, Bookmark, Heart, Menu, MessageCircle, PenLine, Search, Send, Share2, Sparkles, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import type { Post } from './types'
+import { AuthProvider } from './context/AuthContext'
+import { useAuth } from './context/useAuth'
+import { Navbar } from './components/Navbar'
+import { PostList } from './components/PostList'
+import { PostDetail } from './components/PostDetail'
+import { PostEditor } from './components/PostEditor'
+import { ProtectedRoute } from './components/ProtectedRoute'
+import { AuthModal } from './components/AuthModal'
 import './App.css'
 
-type Post = { id:number; title:string; excerpt:string; category:string; author:string; initials:string; date:string; read:string; comments:number; liked:boolean; image:string }
-const initial:Post[]=[
-{id:1,title:'The slow art of building a meaningful life',excerpt:'A few thoughts on making room for what actually matters — and letting the rest wait.',category:'Mindful living',author:'Maya Chen',initials:'MC',date:'Oct 24, 2026',read:'6 min read',comments:18,liked:false,image:'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?auto=format&fit=crop&w=1400&q=85'},
-{id:2,title:'Notes from a very quiet morning',excerpt:'There is a particular kind of clarity that only arrives before the world begins asking things of you.',category:'Personal',author:'Noah Williams',initials:'NW',date:'Oct 22, 2026',read:'4 min read',comments:7,liked:false,image:'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1000&q=85'},
-{id:3,title:'What I learned from starting over',excerpt:'It turns out that beginnings are less about confidence and more about staying curious.',category:'Creativity',author:'Amara Okafor',initials:'AO',date:'Oct 18, 2026',read:'5 min read',comments:12,liked:false,image:'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1000&q=85'},
-{id:4,title:'A field guide to tiny adventures',excerpt:'The antidote to routine might be closer than you think.',category:'Travel',author:'Elena Rossi',initials:'ER',date:'Oct 14, 2026',read:'3 min read',comments:9,liked:false,image:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1000&q=85'}]
-const categories=['All stories','Mindful living','Creativity','Personal','Travel']
-export default function App(){
- const[posts,setPosts]=useState(initial),[active,setActive]=useState(categories[0]),[query,setQuery]=useState(''),[selected,setSelected]=useState<Post|null>(null),[composer,setComposer]=useState(false),[menu,setMenu]=useState(false),[comment,setComment]=useState(''),[comments,setComments]=useState(['This stopped me in my tracks. Thank you for putting this into words.','A beautiful reminder to make space for the things that matter.']),[form,setForm]=useState({title:'',excerpt:'',category:'Personal'})
- const found=useMemo(()=>posts.filter(p=>(active==='All stories'||p.category===active)&&`${p.title} ${p.excerpt}`.toLowerCase().includes(query.toLowerCase())),[posts,active,query]); const feature=posts[0]
- const like=(id:number)=>setPosts(ps=>ps.map(p=>p.id===id?{...p,liked:!p.liked}:p)); const publish=()=>{if(!form.title.trim())return;setPosts([{id:Date.now(),...form,author:'Alex Morgan',initials:'AM',date:'Just now',read:'3 min read',comments:0,liked:false,image:'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1000&q=85'},...posts]);setForm({title:'',excerpt:'',category:'Personal'});setComposer(false);setActive('All stories')}; const addComment=()=>{if(comment.trim()){setComments([comment,...comments]);setComment('')}}
- if(selected)return <ArticlePage post={selected} back={()=>setSelected(null)} like={()=>like(selected.id)} comment={comment} setComment={setComment} addComment={addComment} comments={comments}/>
- return <div className="app-shell"><header className="topbar"><a className="brand" href="#top">inkwell</a><nav className={menu?'nav-open':''}><a className="current" href="#stories">Home</a><a href="#stories">Reading list</a><a href="#about">About</a></nav><div className="header-actions"><button className="icon-button search-toggle"><Search size={19}/></button><button className="write-button" onClick={()=>setComposer(true)}><PenLine size={16}/>Write</button><button className="profile">AM</button><button className="mobile-menu icon-button" onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></div></header>
- <main id="top"><section className="intro"><div className="eyebrow"><Sparkles size={15}/>A publication for people who think</div><h1>Stay curious.</h1><p>Discover stories, thinking, and expertise from writers on any topic.</p><div className="intro-actions"><button className="dark-cta" onClick={()=>document.getElementById('stories')?.scrollIntoView({behavior:'smooth'})}>Start reading <ArrowRight size={17}/></button><button className="text-cta" onClick={()=>setComposer(true)}>Start writing <PenLine size={16}/></button></div></section>
- <section className="featured-wrap" id="stories"><div className="section-kicker"><span>Editor's pick</span><div/></div><article className="featured-card" onClick={()=>setSelected(feature)}><div className="featured-copy"><div className="tag">{feature.category}</div><h2>{feature.title}</h2><p>{feature.excerpt}</p><Author post={feature}/><button className="read-link">Read story <ArrowRight size={16}/></button></div><div className="featured-image" style={{backgroundImage:`url(${feature.image})`}}/></article></section>
- <section className="stories-section"><div className="stories-title-row"><div><h2>Fresh perspectives</h2><p>New ideas from our community.</p></div><div className="search-box"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search stories"/></div></div><div className="category-row">{categories.map(c=><button key={c} onClick={()=>setActive(c)} className={active===c?'category active':'category'}>{c}</button>)}</div><div className="post-grid">{found.filter(p=>p.id!==feature.id).map(p=><Card key={p.id} post={p} open={()=>setSelected(p)} like={()=>like(p.id)}/>)}</div>{found.length<=1&&<div className="empty">No stories here yet. Try a different search, or write the first one.</div>}</section>
- <section className="join-banner" id="about"><div><div className="eyebrow light"><Sparkles size={15}/>Make your mark</div><h2>Write what matters.</h2></div><div><p>Inkwell is where new voices and big ideas find an audience. Join readers and writers who want to understand the world better.</p><button onClick={()=>setComposer(true)}>Start writing <ArrowRight size={17}/></button></div></section></main><footer><a className="brand" href="#top">inkwell</a><p>Ideas and stories from independent thinkers.</p><div><a>About</a><a>Help</a><a>Terms</a></div></footer>
- {composer&&<div className="overlay"><div className="composer modal"><button className="close" onClick={()=>setComposer(false)}><X/></button><div className="mini-brand">commonplace<span>.</span></div><h2>Share a story</h2><p>Give your perspective a place to land.</p><label>Story title<input autoFocus value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="An unforgettable title"/></label><label>Category<select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>{categories.slice(1).map(x=><option key={x}>{x}</option>)}</select></label><label>Your story<textarea value={form.excerpt} onChange={e=>setForm({...form,excerpt:e.target.value})} placeholder="What would you like to share?"/></label><button className="publish" onClick={publish}>Publish story <Send size={16}/></button></div></div>}
- </div>}
-function Author({post}:{post:Post}){return <div className="author"><div className="avatar">{post.initials}</div><div><b>{post.author}</b><span>{post.date} · {post.read}</span></div></div>};function Card({post,open,like}:{post:Post;open:()=>void;like:()=>void}){return <article className="post-card"><div className="card-image" onClick={open} style={{backgroundImage:`url(${post.image})`}}><div className="tag floating">{post.category}</div></div><div className="post-content"><h3 onClick={open}>{post.title}</h3><p>{post.excerpt}</p><div className="card-bottom"><Author post={post}/><div className="engagement"><button onClick={like} className={post.liked?'liked':''}><Heart size={17} fill={post.liked?'currentColor':'none'}/></button><button onClick={open}><MessageCircle size={17}/><span>{post.comments}</span></button></div></div></div></article>}
-function ArticlePage({post,back,like,comment,setComment,addComment,comments}:{post:Post;back:()=>void;like:()=>void;comment:string;setComment:(x:string)=>void;addComment:()=>void;comments:string[]}){return <div className="article-page"><header className="topbar article-topbar"><button className="back" onClick={back}><ArrowLeft size={18}/> Back to stories</button><a className="brand" href="#top" onClick={e=>{e.preventDefault();back()}}>inkwell</a><div className="article-head-actions"><button className="icon-button"><Search size={19}/></button><button className="write-button">Write</button><button className="profile">AM</button></div></header><main><article className="full-story"><div className="tag">{post.category}</div><h1>{post.title}</h1><p className="article-deck">{post.excerpt}</p><div className="article-author"><Author post={post}/><div className="story-actions"><button onClick={like} className={post.liked?'liked':''}><Heart size={18} fill={post.liked?'currentColor':'none'}/>{post.liked?'Loved':'Like'}</button><button><Bookmark size={18}/></button><button><Share2 size={18}/></button></div></div><div className="article-image" style={{backgroundImage:`url(${post.image})`}}/><div className="article-copy"><p>{post.excerpt} The things that shape our days are often the ones we barely notice: a walk without a destination, a thought left unfinished, the small courage of choosing a different rhythm.</p><p>There is no single way to make a life feel meaningful. But there is value in paying close attention to the moments that feel true, and allowing them to lead us somewhere unexpected.</p><h2>Give the good things more room.</h2><p>This is an invitation to slow down and notice. To keep a little space open for curiosity, for conversation, and for the ideas that ask us to see the world differently.</p></div><section className="comments article-comments"><h3>Responses <span>{comments.length}</span></h3><div className="comment-compose"><div className="avatar me">AM</div><input value={comment} onChange={e=>setComment(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addComment()} placeholder="What are your thoughts?"/><button onClick={addComment}><Send size={16}/></button></div>{comments.map((c,i)=><div className="comment" key={i}><div className="avatar">{i?'JR':'LC'}</div><div><b>{i?'Jordan Reed':'Lena Costa'}</b><span> · {i?'2 hours ago':'Yesterday'}</span><p>{c}</p><button>Reply</button></div></div>)}</section></article></main></div>}
+type ViewMode = 'list' | 'detail' | 'editor'
+
+function BlogApp() {
+  const { openAuthModal, isAuthenticated } = useAuth()
+  const [view, setView] = useState<ViewMode>('list')
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
+  const [postToEdit, setPostToEdit] = useState<Post | null>(null)
+
+  // Listen for hash changes to support browser back button / direct anchors
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash
+      if (hash.startsWith('#post/')) {
+        const id = hash.replace('#post/', '')
+        if (id) {
+          setSelectedPostId(id)
+          setView('detail')
+        }
+      } else if (hash === '#write') {
+        setPostToEdit(null)
+        setView('editor')
+      } else if (hash === '#stories' || hash === '' || hash === '#top') {
+        if (view !== 'list') {
+          setView('list')
+          setSelectedPostId(null)
+          setPostToEdit(null)
+        }
+      }
+    }
+
+    handleHashChange()
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [view])
+
+  const navigateToHome = () => {
+    window.location.hash = ''
+    setSelectedPostId(null)
+    setPostToEdit(null)
+    setView('list')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const navigateToPost = (post: Post) => {
+    setSelectedPostId(post._id)
+    setPostToEdit(null)
+    setView('detail')
+    window.location.hash = `#post/${post._id}`
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const navigateToNewPost = () => {
+    if (!isAuthenticated) {
+      openAuthModal('login')
+      return
+    }
+    setPostToEdit(null)
+    setView('editor')
+    window.location.hash = '#write'
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const navigateToEditPost = (post: Post) => {
+    setPostToEdit(post)
+    setView('editor')
+    window.location.hash = `#edit/${post._id}`
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleSaveComplete = (savedPost: Post) => {
+    setSelectedPostId(savedPost._id)
+    setPostToEdit(null)
+    setView('detail')
+    window.location.hash = `#post/${savedPost._id}`
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleDeleteSuccess = () => {
+    navigateToHome()
+  }
+
+  return (
+    <div className="app-shell">
+      {/* Navbar: Links to home and new post; login and logout */}
+      <Navbar
+        onNavigateHome={navigateToHome}
+        onNewPost={navigateToNewPost}
+        activeView={view}
+      />
+
+      {/* Main Content Areas */}
+      {view === 'list' && (
+        <PostList
+          onSelectPost={navigateToPost}
+          onNewPost={navigateToNewPost}
+        />
+      )}
+
+      {view === 'detail' && selectedPostId && (
+        <PostDetail
+          postId={selectedPostId}
+          onBack={navigateToHome}
+          onEditPost={navigateToEditPost}
+          onDeleteSuccess={handleDeleteSuccess}
+        />
+      )}
+
+      {view === 'editor' && (
+        <ProtectedRoute fallbackMessage="You must be signed in to compose or edit stories.">
+          <PostEditor
+            postToEdit={postToEdit}
+            onSaveComplete={handleSaveComplete}
+            onCancel={() => {
+              if (selectedPostId) {
+                setView('detail')
+                window.location.hash = `#post/${selectedPostId}`
+              } else {
+                navigateToHome()
+              }
+            }}
+          />
+        </ProtectedRoute>
+      )}
+
+      {/* Authentication Modal (JWT Register and Login) */}
+      <AuthModal />
+    </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BlogApp />
+    </AuthProvider>
+  )
+}
